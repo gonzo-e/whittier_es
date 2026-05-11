@@ -46,17 +46,56 @@
 
 // ─────────────────────────────────────────────
 
-function handleFormSubmit(e) {
-  e.preventDefault();
+// Handle form submission manually
+(function() {
   const form = document.getElementById('contact-form');
-  const success = document.getElementById('form-success');
-  // In production this POST goes to the Next.js API route /api/contact
-  // For this mockup we just show the success state
-  form.style.display = 'none';
-  success.style.display = 'block';
-  // Also hide the OR divider
-  document.querySelector('.contact-divider').style.display = 'none';
-}
+  if (!form) return;
+
+  const successDiv = document.querySelector('[data-fs-success]');
+  const errorDiv = document.querySelector('[data-fs-error]');
+  const submitBtn = form.querySelector('button[type="submit"]');
+
+  form.addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    if (!submitBtn || !successDiv || !errorDiv) return;
+
+    // Reset messages
+    successDiv.style.display = 'none';
+    errorDiv.style.display = 'none';
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Sending...';
+
+    try {
+      const formData = new FormData(form);
+      const response = await fetch('https://formspree.io/f/mykolzbv', {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        form.style.display = 'none';
+        successDiv.style.display = 'block';
+        successDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } else {
+        const result = await response.json().catch(() => null);
+        const serverMessage = result && result.error ? result.error : 'Something went wrong. Please try again.';
+        errorDiv.style.display = 'block';
+        errorDiv.textContent = serverMessage;
+      }
+    } catch (error) {
+      errorDiv.style.display = 'block';
+      errorDiv.textContent = 'Network error. Please check your connection and try again.';
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Send Message';
+    }
+  });
+})();
 
 // ─────────────────────────────────────────────
 
